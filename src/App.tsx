@@ -85,9 +85,11 @@ const DEFAULT_EX_EVENT_DURATION = 1;
 const TIMELINE_SCALE = 20;
 const EX_ROW_TOP = 6;
 const EX_HEIGHT = 28;
+const SKILL_ROW_GAP = 6;
+const NS_ROW_TOP = EX_ROW_TOP + EX_HEIGHT + SKILL_ROW_GAP;
 const BUFF_HEIGHT = 18;
 const BUFF_GAP = 4;
-const BUFF_TOP_OFFSET = EX_ROW_TOP + EX_HEIGHT + 8;
+const BUFF_TOP_OFFSET = NS_ROW_TOP + EX_HEIGHT + 8;
 const TRACK_PADDING_BOTTOM = 8;
 
 const defaultStudents: Student[] = [
@@ -1245,6 +1247,7 @@ export default function App() {
                       if (!skill) return null;
                       const left = (evt.start / timelineSeconds) * 100;
                       const width = (evt.duration / timelineSeconds) * 100;
+                      const top = evt.skillType === "ns" ? NS_ROW_TOP : EX_ROW_TOP;
                       return (
                         <button
                           key={evt.id}
@@ -1254,7 +1257,7 @@ export default function App() {
                           }${evt.skillType === "ns" ? " ns" : ""}${
                             evt.skillType === "ex" ? " ex" : ""
                           }`}
-                          style={{ left: `${left}%`, width: `${width}%` }}
+                          style={{ left: `${left}%`, width: `${width}%`, top: `${top}px` }}
                           onClick={() => {
                             if (dragMovedRef.current) {
                               dragMovedRef.current = false;
