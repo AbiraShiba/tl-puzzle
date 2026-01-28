@@ -1156,11 +1156,9 @@ export default function App() {
     <div className="app">
       <header className="hero">
         <div>
-          <p className="eyebrow">TL Puzzle / Blue Archive</p>
-          <h1>バフタイムライン・パズル</h1>
-          <p className="subtitle">
-            EXをタイムラインに配置し、各時刻のステータスを確認するMVP。
-          </p>
+          <p className="eyebrow">TL Puzzle</p>
+          <h1>タイムラインパズル（超ヒマリ論）</h1>
+          <p className="subtitle">タイムラインを可視化します。TBD。</p>
         </div>
         <div className="hero-card">
           <div className="stat">
@@ -1170,10 +1168,6 @@ export default function App() {
           <div className="stat">
             <span>タイムレンジ</span>
             <strong>{timelineSeconds}s</strong>
-          </div>
-          <div className="stat">
-            <span>スタック規則</span>
-            <strong>同一stackGroupは後書き</strong>
           </div>
         </div>
       </header>
@@ -2230,7 +2224,7 @@ export default function App() {
                 </div>
               </div>
             </div>
-            <div className="actions">
+            <div className="actions share-actions">
               <button type="button" onClick={handleShare}>
                 共有URLを作成
               </button>

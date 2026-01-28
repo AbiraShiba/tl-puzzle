@@ -166,6 +166,10 @@ body::after {
   gap: 8px;
 }
 
+.share-actions {
+  margin-top: 16px;
+}
+
 .actions button {
   max-width: 100%;
   white-space: normal;
