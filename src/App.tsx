@@ -81,18 +81,19 @@ const BUFF_GAP = 4;
 const BUFF_TOP_OFFSET = NS_ROW_TOP + EX_HEIGHT + 8;
 const TRACK_PADDING_BOTTOM = 8;
 
-const defaultStudents: Student[] = [
-  {
-    id: "s.student_a",
-    name: "生徒A",
+const defaultStudents: Student[] = Array.from({ length: 6 }, (_, index) => {
+  const id = String(index + 1);
+  return {
+    id: `s.student_${id}`,
+    name: `生徒${id}`,
     ns: [
       {
-        id: "ns_student_a",
+        id: `ns_student_${id}`,
         name: "NS-1",
         stackGroup: "ns",
         buffs: [
           {
-            id: "ns_student_a_atk",
+            id: `ns_student_${id}_buff_1`,
             name: "効果1",
             kind: "buff",
             stat: "atk",
@@ -105,11 +106,11 @@ const defaultStudents: Student[] = [
     ],
     ex: [
       {
-        id: "ex_student_a_1",
+        id: `ex_student_${id}_1`,
         name: "EX-1",
         buffs: [
           {
-            id: "ex_student_a_atk",
+            id: `ex_student_${id}_buff_1`,
             name: "効果1",
             kind: "buff",
             stat: "atk",
@@ -117,59 +118,11 @@ const defaultStudents: Student[] = [
             duration: 6,
             stackGroup: "field",
           },
-          {
-            id: "ex_student_a_crit",
-            name: "効果2",
-            kind: "buff",
-            stat: "crit",
-            value: 0.2,
-            duration: 6,
-            stackGroup: "field",
-          },
         ],
       },
     ],
-  },
-  {
-    id: "s.student_b",
-    name: "生徒B",
-    ns: [
-      {
-        id: "ns_student_b",
-        name: "NS-1",
-        stackGroup: "ns",
-        buffs: [
-          {
-            id: "ns_student_b_atk",
-            name: "効果1",
-            kind: "buff",
-            stat: "atk",
-            value: 0.12,
-            duration: 12,
-            stackGroup: "ns",
-          },
-        ],
-      },
-    ],
-    ex: [
-      {
-        id: "ex_student_b_1",
-        name: "EX-1",
-        buffs: [
-          {
-            id: "ex_student_b_atk",
-            name: "効果1",
-            kind: "buff",
-            stat: "atk",
-            value: 0.2,
-            duration: 8,
-            stackGroup: "field",
-          },
-        ],
-      },
-    ],
-  },
-];
+  };
+});
 
 const formatTime = (value: number) =>
   `${value.toFixed(2).replace(/\.?0+$/, "")}s`;
@@ -519,7 +472,7 @@ export default function App() {
   );
   const [enemy, setEnemy] = useState({
     id: ENEMY_ID,
-    name: "敵",
+    name: "BOSS",
   });
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
