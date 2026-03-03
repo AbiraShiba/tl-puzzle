@@ -89,7 +89,7 @@ const defaultStudents: Student[] = Array.from({ length: 6 }, (_, index) => {
     ns: [
       {
         id: `ns_student_${id}`,
-        name: "NS-1",
+        name: "NS",
         stackGroup: "ns",
         buffs: [
           {
@@ -107,7 +107,7 @@ const defaultStudents: Student[] = Array.from({ length: 6 }, (_, index) => {
     ex: [
       {
         id: `ex_student_${id}_1`,
-        name: "EX-1",
+        name: "EX",
         buffs: [
           {
             id: `ex_student_${id}_buff_1`,
@@ -116,7 +116,7 @@ const defaultStudents: Student[] = Array.from({ length: 6 }, (_, index) => {
             stat: "atk",
             value: 0.3,
             duration: 6,
-            stackGroup: "field",
+            stackGroup: "attack",
           },
         ],
       },
@@ -128,6 +128,16 @@ const formatTime = (value: number) =>
   `${value.toFixed(2).replace(/\.?0+$/, "")}s`;
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
+const getNextIndexedName = (base: string, existingNames: string[]) => {
+  const maxIndex = existingNames.reduce((max, name) => {
+    if (name === base) return Math.max(max, 1);
+    const match = name.match(new RegExp(`^${base}-(\\d+)$`));
+    if (!match) return max;
+    const num = Number(match[1]);
+    return Number.isFinite(num) ? Math.max(max, num) : max;
+  }, 0);
+  return `${base}-${Math.max(1, maxIndex + 1)}`;
+};
 const toggleId = (list: string[] | undefined, id: string) => {
   const next = new Set(list ?? []);
   if (next.has(id)) {
@@ -593,8 +603,7 @@ export default function App() {
             skill.buffs,
             Math.max(timeStep, DEFAULT_EX_EVENT_DURATION)
           ),
-          target: "self",
-          targetStudentIds: [studentId],
+          target: "enemy",
         },
       ]);
       setSelectedEventId(null);
@@ -908,7 +917,10 @@ export default function App() {
         ...current.ex,
         {
           id: createLocalId(`ex_${studentId}`),
-          name: "EX",
+          name: getNextIndexedName(
+            "EX",
+            current.ex.map((skill) => skill.name)
+          ),
           buffs: [],
         },
       ],
@@ -955,8 +967,8 @@ export default function App() {
           stat: "atk",
           value: 0,
           duration: 6,
-          stackGroup: "ex",
-          target: "self",
+          stackGroup: "attack",
+          target: "enemy",
         },
       ],
     }));
@@ -988,7 +1000,10 @@ export default function App() {
         ...current.ns,
         {
           id: createLocalId(`ns_${studentId}`),
-          name: "NS",
+          name: getNextIndexedName(
+            "NS",
+            current.ns.map((skill) => skill.name)
+          ),
           stackGroup: "ns",
           buffs: [],
         },
@@ -1037,7 +1052,7 @@ export default function App() {
           value: 0,
           duration: 10,
           stackGroup: "ns",
-          target: "self",
+          target: "enemy",
         },
       ],
     }));
@@ -1359,10 +1374,10 @@ export default function App() {
                       });
                     }}
                   >
+                  <option value="enemy">敵</option>
                   <option value="self">自分</option>
-                  <option value="student">指定生徒/敵</option>
+                  <option value="student">選択生徒</option>
                   <option value="all">全員</option>
-                  <option value="enemy">敵のみ</option>
                 </select>
               </label>
               {selectedEvent.target === "student" && (
@@ -1496,10 +1511,10 @@ export default function App() {
                                   );
                                 }}
                               >
+                              <option value="enemy">敵</option>
                               <option value="self">自分</option>
-                              <option value="student">指定生徒/敵</option>
+                              <option value="student">選択生徒</option>
                               <option value="all">全員</option>
-                              <option value="enemy">敵のみ</option>
                             </select>
                             {effectiveTarget === "student" && (
                               <details className="target-disclosure">
@@ -1572,10 +1587,10 @@ export default function App() {
                       );
                     }}
                   >
+                    <option value="enemy">敵</option>
                     <option value="self">自分</option>
-                    <option value="student">指定生徒/敵</option>
+                    <option value="student">選択生徒</option>
                     <option value="all">全員</option>
-                    <option value="enemy">敵のみ</option>
                   </select>
                 </label>
                 {(selectedBuff.event.buffTargets?.[selectedBuff.buff.id]?.target ??
