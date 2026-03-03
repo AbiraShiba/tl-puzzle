@@ -452,6 +452,7 @@ type DragState = {
   studentId: string;
   offset: number;
   rect: DOMRect;
+  startClientX: number;
 };
 
 const serializeState = (
@@ -726,6 +727,7 @@ export default function App() {
       studentId: evt.studentId,
       offset: clickTime - evt.start,
       rect,
+      startClientX: event.clientX,
     };
     dragMovedRef.current = false;
     document.body.style.userSelect = "none";
@@ -745,6 +747,7 @@ export default function App() {
       studentId: evt.studentId,
       offset: 0,
       rect,
+      startClientX: event.clientX,
     };
     dragMovedRef.current = false;
     document.body.style.userSelect = "none";
@@ -754,6 +757,15 @@ export default function App() {
     const handleMove = (event: MouseEvent) => {
       const drag = dragRef.current;
       if (!drag) return;
+      // If primary button is no longer pressed (e.g. mouseup lost outside window),
+      // cancel dragging to avoid unintended start/duration updates.
+      if ((event.buttons & 1) !== 1) {
+        dragRef.current = null;
+        document.body.style.userSelect = "";
+        dragMovedRef.current = false;
+        return;
+      }
+      if (Math.abs(event.clientX - drag.startClientX) < 3) return;
       dragMovedRef.current = true;
 
       const ratio = clamp((event.clientX - drag.rect.left) / drag.rect.width, 0, 1);
@@ -795,7 +807,7 @@ export default function App() {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
     };
-  }, []);
+  }, [timelineSeconds, timeStep]);
 
   const applyStudents = (nextStudents: Student[]) => {
     setStudents(nextStudents);
@@ -1436,7 +1448,9 @@ export default function App() {
                     value={selectedEvent.start}
                     onFocus={selectAllOnFocus}
                     onChange={(event) => {
+                      if (event.target.value.trim() === "") return;
                       const value = Number(event.target.value);
+                      if (!Number.isFinite(value)) return;
                       const nextStart = clamp(
                         Math.round(value / timeStep) * timeStep,
                         0,
@@ -1459,7 +1473,9 @@ export default function App() {
                     }
                     onFocus={selectAllOnFocus}
                     onChange={(event) => {
+                      if (event.target.value.trim() === "") return;
                       const value = Number(event.target.value);
+                      if (!Number.isFinite(value)) return;
                       const nextDuration = clamp(
                         Math.round(value / timeStep) * timeStep,
                         timeStep,
