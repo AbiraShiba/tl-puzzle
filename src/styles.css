@@ -398,19 +398,6 @@ input[type="number"] {
   color: var(--muted);
 }
 
-.stats {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--ink-soft);
-}
-
-.stats strong {
-  display: block;
-  color: var(--ink);
-}
-
 .switch {
   display: flex;
   gap: 10px;
@@ -509,6 +496,38 @@ input[type="number"] {
   width: min(420px, 80vw);
 }
 
+.timeline-settings {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.timeline-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.timeline-settings input[type="number"] {
+  width: 120px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font: inherit;
+}
+
+.timeline-settings-preview {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
 .ex-palette {
   display: grid;
   gap: 10px;
@@ -523,6 +542,17 @@ input[type="number"] {
   margin: 0;
   font-size: 0.95rem;
   color: var(--ink-soft);
+}
+
+.timeline-editor {
+  margin-top: 10px;
+  display: grid;
+  gap: 12px;
+}
+
+.timeline-editor h3 {
+  margin: 0;
+  font-size: 1rem;
 }
 
 .palette-row {
@@ -754,51 +784,11 @@ input[type="number"] {
   cursor: ew-resize;
 }
 
-.inspector {
-  grid-column: 1 / -1;
-}
-
-.inspector-controls {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
 select {
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid var(--border);
   font: inherit;
-}
-
-.time-tag {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: #e2e8f0;
-  font-weight: 600;
-}
-
-.inspector-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.card {
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 14px 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.card h3 {
-  margin-top: 0;
-}
-
-.card ul {
-  padding-left: 18px;
-  margin: 10px 0 0;
 }
 
 .muted {

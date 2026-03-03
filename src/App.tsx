@@ -24,11 +24,6 @@ type ExSkill = {
   buffs: Buff[];
 };
 
-type NormalAttack = {
-  hitRate: number;
-  multiplier: number;
-};
-
 type NSkill = {
   id: string;
   name: string;
@@ -39,13 +34,7 @@ type NSkill = {
 type Student = {
   id: string;
   name: string;
-  stats: {
-    atk: number;
-    crit: number;
-    critDmg: number;
-  };
-  normal: NormalAttack;
-  ns?: NSkill;
+  ns: NSkill[];
   ex: ExSkill[];
 };
 
@@ -78,7 +67,7 @@ type BuffInstance = {
   sourceBuffId: string;
 };
 
-const DEFAULT_TIMELINE_SECONDS = 60;
+const DEFAULT_TIMELINE_SECONDS = 240;
 const DEFAULT_TIME_STEP = 0.1;
 const ENEMY_ID = "enemy";
 const DEFAULT_EX_EVENT_DURATION = 1;
@@ -96,28 +85,24 @@ const defaultStudents: Student[] = [
   {
     id: "s.student_a",
     name: "生徒A",
-    stats: {
-      atk: 1050,
-      crit: 200,
-      critDmg: 200,
-    },
-    normal: { hitRate: 1.0, multiplier: 1.0 },
-    ns: {
-      id: "ns_student_a",
-      name: "NS-1",
-      stackGroup: "ns",
-      buffs: [
-        {
-          id: "ns_student_a_atk",
-          name: "効果1",
-          kind: "buff",
-          stat: "atk",
-          value: 0.15,
-          duration: 10,
-          stackGroup: "ns",
-        },
-      ],
-    },
+    ns: [
+      {
+        id: "ns_student_a",
+        name: "NS-1",
+        stackGroup: "ns",
+        buffs: [
+          {
+            id: "ns_student_a_atk",
+            name: "効果1",
+            kind: "buff",
+            stat: "atk",
+            value: 0.15,
+            duration: 10,
+            stackGroup: "ns",
+          },
+        ],
+      },
+    ],
     ex: [
       {
         id: "ex_student_a_1",
@@ -148,28 +133,24 @@ const defaultStudents: Student[] = [
   {
     id: "s.student_b",
     name: "生徒B",
-    stats: {
-      atk: 820,
-      crit: 150,
-      critDmg: 175,
-    },
-    normal: { hitRate: 1.0, multiplier: 1.0 },
-    ns: {
-      id: "ns_student_b",
-      name: "NS-1",
-      stackGroup: "ns",
-      buffs: [
-        {
-          id: "ns_student_b_atk",
-          name: "効果1",
-          kind: "buff",
-          stat: "atk",
-          value: 0.12,
-          duration: 12,
-          stackGroup: "ns",
-        },
-      ],
-    },
+    ns: [
+      {
+        id: "ns_student_b",
+        name: "NS-1",
+        stackGroup: "ns",
+        buffs: [
+          {
+            id: "ns_student_b_atk",
+            name: "効果1",
+            kind: "buff",
+            stat: "atk",
+            value: 0.12,
+            duration: 12,
+            stackGroup: "ns",
+          },
+        ],
+      },
+    ],
     ex: [
       {
         id: "ex_student_b_1",
@@ -189,22 +170,6 @@ const defaultStudents: Student[] = [
     ],
   },
 ];
-
-const statLabels: Record<BuffStat, string> = {
-  atk: "攻撃力",
-  crit: "会心",
-  critDmg: "会心ダメージ",
-};
-const kindLabels: Record<EffectKind, string> = {
-  buff: "バフ",
-  debuff: "デバフ",
-  attack: "攻撃",
-};
-const getBuffName = (kind: EffectKind, stat: BuffStat) => {
-  if (kind === "attack") return "攻撃";
-  const sign = kind === "debuff" ? "-" : "+";
-  return `${statLabels[stat]}${sign}`;
-};
 
 const formatTime = (value: number) =>
   `${value.toFixed(2).replace(/\.?0+$/, "")}s`;
@@ -269,9 +234,7 @@ const buildBuffInstances = (
     const skill =
       event.skillType === "ex"
         ? student.ex.find((item) => item.id === event.skillId)
-        : student.ns && student.ns.id === event.skillId
-          ? student.ns
-          : null;
+        : student.ns.find((item) => item.id === event.skillId) ?? null;
     if (!skill) return;
     skill.buffs.forEach((buff) => {
       const kind = buff.kind ?? "buff";
@@ -305,6 +268,7 @@ const buildBuffInstances = (
           ? Math.max(timeStep, buff.duration ?? timeStep)
           : event.duration ?? buff.duration ?? timeStep;
       const end = Math.min(event.start + duration, timelineSeconds);
+      const normalizedStackGroup = buff.stackGroup.trim() || "default";
       finalTargets.forEach((targetStudentId) => {
         instances.push({
           id: `${event.id}:${buff.id}:${targetStudentId}`,
@@ -313,10 +277,10 @@ const buildBuffInstances = (
           name: buff.name,
           kind,
           stat: buff.stat,
-          value: buff.value,
+          value: 0,
           start: event.start,
           end,
-          stackGroup: buff.stackGroup,
+          stackGroup: normalizedStackGroup,
           source: event.skillType,
           sourceId: skill.id,
           sourceEventId: event.id,
@@ -388,51 +352,6 @@ const buildBuffLanes = (buffs: BuffInstance[]) => {
   return { laneMap, laneCount: Math.max(1, laneEnds.length) };
 };
 
-type StatTarget = {
-  id: string;
-  stats: Student["stats"];
-};
-
-const computeStatsAtTime = (
-  target: StatTarget,
-  time: number,
-  instances: BuffInstance[]
-) => {
-  const active = instances.filter(
-    (item) =>
-      item.studentId === target.id && item.start <= time && time < item.end
-  );
-
-  const stacked = new Map<string, BuffInstance>();
-  active.forEach((buff) => {
-    const key = `${buff.stat}:${buff.stackGroup}:${buff.kind}`;
-    const current = stacked.get(key);
-    if (!current || buff.start > current.start) {
-      stacked.set(key, buff);
-    }
-  });
-
-  const totals = {
-    atk: 0,
-    crit: 0,
-    critDmg: 0,
-  };
-
-  Array.from(stacked.values()).forEach((buff) => {
-    if (buff.kind === "attack") return;
-    const sign = buff.kind === "debuff" ? -1 : 1;
-    totals[buff.stat] += buff.value * sign;
-  });
-
-  const computed = {
-    atk: target.stats.atk * (1 + totals.atk),
-    crit: target.stats.crit * (1 + totals.crit),
-    critDmg: target.stats.critDmg * (1 + totals.critDmg),
-  };
-
-  return { active, totals, computed };
-};
-
 const createId = () => `evt_${Date.now().toString(36)}_${Math.random()}`;
 const createLocalId = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -462,7 +381,7 @@ const serializeState = (
   nsTargets: Record<string, { target: TargetMode; targetStudentIds?: string[] }>,
   timelineSeconds: number,
   timeStep: number,
-  enemy: { id: string; name: string; stats: Student["stats"] }
+  enemy: { id: string; name: string }
 ) =>
   base64UrlEncode(
     JSON.stringify({
@@ -492,7 +411,7 @@ const parseState = (value: string) => {
       nsTargets?: Record<string, { target: TargetMode; targetStudentIds?: string[] }>;
       timelineSeconds?: number;
       timeStep?: number;
-      enemy?: { id: string; name: string; stats: Student["stats"] };
+      enemy?: { id: string; name: string };
     };
     if (!parsed?.students) return null;
     return parsed;
@@ -500,6 +419,16 @@ const parseState = (value: string) => {
     return null;
   }
 };
+
+const normalizeStudents = (students: Student[]) =>
+  students.map((student) => ({
+    ...student,
+    ns: Array.isArray((student as Student & { ns: unknown }).ns)
+      ? (student.ns as NSkill[])
+      : (student as Student & { ns?: NSkill }).ns
+        ? [(student as Student & { ns?: NSkill }).ns as NSkill]
+        : [],
+  }));
 
 const normalizeEvents = (
   students: Student[],
@@ -519,9 +448,7 @@ const normalizeEvents = (
     const skill =
       skillType === "ex"
         ? student.ex.find((item) => item.id === skillId)
-        : student.ns && student.ns.id === skillId
-          ? student.ns
-          : null;
+        : student.ns.find((item) => item.id === skillId) ?? null;
     if (!skill) return [];
     const target =
       evt.target === "all" || evt.target === "student" || evt.target === "enemy"
@@ -592,11 +519,6 @@ export default function App() {
   const [enemy, setEnemy] = useState({
     id: ENEMY_ID,
     name: "敵",
-    stats: {
-      atk: 1000,
-      crit: 200,
-      critDmg: 200,
-    },
   });
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
@@ -643,17 +565,11 @@ export default function App() {
   );
 
   const selectedStudent = students.find((student) => student.id === selectedStudentId);
-  const selectedTarget =
-    selectedStudentId === ENEMY_ID ? enemy : selectedStudent ?? null;
   const allTargets = useMemo(() => [...students, enemy], [students, enemy]);
   const allTargetIds = useMemo(
     () => allTargets.map((item) => item.id),
     [allTargets]
   );
-
-  const inspectStats = selectedTarget
-    ? computeStatsAtTime(selectedTarget, inspectTime, buffInstances)
-    : null;
 
   const handleDragStart = (
     event: DragEvent<HTMLButtonElement>,
@@ -689,9 +605,7 @@ export default function App() {
       const skill =
         parsed.skillType === "ex"
           ? student.ex.find((item) => item.id === parsed.skillId)
-          : student.ns && student.ns.id === parsed.skillId
-            ? student.ns
-            : null;
+          : student.ns.find((item) => item.id === parsed.skillId) ?? null;
       if (!skill) return;
 
       setEvents((current) => [
@@ -857,10 +771,11 @@ export default function App() {
     if (!encoded) return;
     const parsed = parseState(encoded);
     if (!parsed) return;
+    const normalizedStudents = normalizeStudents(parsed.students);
 
-    applyStudents(parsed.students);
+    applyStudents(normalizedStudents);
     const normalized = normalizeEvents(
-      parsed.students,
+      normalizedStudents,
       parsed.events ?? [],
       parsed.timeStep ?? DEFAULT_TIME_STEP
     );
@@ -879,7 +794,7 @@ export default function App() {
     setNsTargets(
       parsed.nsTargets ??
         Object.fromEntries(
-          parsed.students.map((student) => [student.id, { target: "self" }])
+          normalizedStudents.map((student) => [student.id, { target: "self" }])
         )
     );
   };
@@ -967,14 +882,14 @@ export default function App() {
     const newStudent: Student = {
       id,
       name: "新規生徒",
-      stats: { atk: 1000, crit: 200, critDmg: 200 },
-      normal: { hitRate: 1.0, multiplier: 1.0 },
-      ns: {
-        id: `ns_${id}`,
-        name: "NS",
-        stackGroup: "ns",
-        buffs: [],
-      },
+      ns: [
+        {
+          id: `ns_${id}_1`,
+          name: "NS",
+          stackGroup: "ns",
+          buffs: [],
+        },
+      ],
       ex: [
         {
           id: `ex_${id}_1`,
@@ -1061,10 +976,10 @@ export default function App() {
         ...ex.buffs,
         {
           id: createLocalId(`buff_${exId}`),
-          name: getBuffName("buff", "atk"),
+          name: "種類",
           kind: "buff",
           stat: "atk",
-          value: 0.1,
+          value: 0,
           duration: 6,
           stackGroup: "ex",
           target: "self",
@@ -1092,24 +1007,60 @@ export default function App() {
     }));
   };
 
-  const updateNsSkill = (studentId: string, updater: (ns: NSkill) => NSkill) => {
+  const addNsSkill = (studentId: string) => {
     updateStudent(studentId, (current) => ({
       ...current,
-      ns: current.ns ? updater(current.ns) : current.ns,
+      ns: [
+        ...current.ns,
+        {
+          id: createLocalId(`ns_${studentId}`),
+          name: "NS",
+          stackGroup: "ns",
+          buffs: [],
+        },
+      ],
     }));
   };
 
-  const addNsBuff = (studentId: string) => {
-    updateNsSkill(studentId, (ns) => ({
+  const removeNsSkill = (studentId: string, nsId: string) => {
+    updateStudent(studentId, (current) => ({
+      ...current,
+      ns: current.ns.filter((ns) => ns.id !== nsId),
+    }));
+    setEvents((current) =>
+      current.filter(
+        (evt) =>
+          !(
+            evt.studentId === studentId &&
+            evt.skillType === "ns" &&
+            evt.skillId === nsId
+          )
+      )
+    );
+  };
+
+  const updateNsSkill = (
+    studentId: string,
+    nsId: string,
+    updater: (ns: NSkill) => NSkill
+  ) => {
+    updateStudent(studentId, (current) => ({
+      ...current,
+      ns: current.ns.map((ns) => (ns.id === nsId ? updater(ns) : ns)),
+    }));
+  };
+
+  const addNsBuff = (studentId: string, nsId: string) => {
+    updateNsSkill(studentId, nsId, (ns) => ({
       ...ns,
       buffs: [
         ...ns.buffs,
         {
           id: createLocalId(`buff_${ns.id}`),
-          name: getBuffName("buff", "atk"),
+          name: "種類",
           kind: "buff",
           stat: "atk",
-          value: 0.1,
+          value: 0,
           duration: 10,
           stackGroup: "ns",
           target: "self",
@@ -1120,17 +1071,18 @@ export default function App() {
 
   const updateNsBuff = (
     studentId: string,
+    nsId: string,
     buffId: string,
     updater: (buff: Buff) => Buff
   ) => {
-    updateNsSkill(studentId, (ns) => ({
+    updateNsSkill(studentId, nsId, (ns) => ({
       ...ns,
       buffs: ns.buffs.map((buff) => (buff.id === buffId ? updater(buff) : buff)),
     }));
   };
 
-  const removeNsBuff = (studentId: string, buffId: string) => {
-    updateNsSkill(studentId, (ns) => ({
+  const removeNsBuff = (studentId: string, nsId: string, buffId: string) => {
+    updateNsSkill(studentId, nsId, (ns) => ({
       ...ns,
       buffs: ns.buffs.filter((buff) => buff.id !== buffId),
     }));
@@ -1147,9 +1099,7 @@ export default function App() {
           const skill =
             event?.skillType === "ex"
               ? student?.ex.find((item) => item.id === event?.skillId)
-              : student?.ns && student.ns.id === event?.skillId
-                ? student.ns
-                : null;
+              : student?.ns.find((item) => item.id === event?.skillId) ?? null;
           const buff = skill?.buffs.find(
             (item) => item.id === selectedBuffRef.buffId
           );
@@ -1181,23 +1131,87 @@ export default function App() {
           <h1>タイムラインパズル（超ヒマリ論）</h1>
           <p className="subtitle">タイムラインを可視化します。TBD。</p>
         </div>
-        <div className="hero-card">
-          <div className="stat">
-            <span>時間解像度</span>
-            <strong>{timeStep.toFixed(2)}s</strong>
-          </div>
-          <div className="stat">
-            <span>タイムレンジ</span>
-            <strong>{timelineSeconds}s</strong>
-          </div>
-        </div>
       </header>
 
       <main className="layout">
         <div className="layout-row">
           <section className="panel timeline">
           <div className="panel-head">
-            <h2>EXタイムライン</h2>
+            <div className="timeline-settings">
+              <label>
+                時間解像度(秒)
+                <input
+                  type="number"
+                  min={0.05}
+                  max={1}
+                  step={0.05}
+                  value={timeStepInput}
+                  onChange={(event) => setTimeStepInput(event.target.value)}
+                  onFocus={(event) => event.currentTarget.select()}
+                  onBlur={() => {
+                    const value = Number(timeStepInput);
+                    if (Number.isFinite(value)) {
+                      updateTimeStep(value);
+                    } else {
+                      setTimeStepInput(String(timeStep));
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      const value = Number(timeStepInput);
+                      if (Number.isFinite(value)) {
+                        updateTimeStep(value);
+                      } else {
+                        setTimeStepInput(String(timeStep));
+                      }
+                      event.currentTarget.blur();
+                    }
+                  }}
+                />
+              </label>
+              <label>
+                戦闘時間(秒)
+                <input
+                  type="number"
+                  min={10}
+                  max={600}
+                  step={5}
+                  value={timelineSecondsInput}
+                  onChange={(event) => setTimelineSecondsInput(event.target.value)}
+                  onFocus={(event) => event.currentTarget.select()}
+                  onBlur={() => {
+                    const value = Number(timelineSecondsInput);
+                    if (Number.isFinite(value)) {
+                      updateTimelineSeconds(value);
+                    } else {
+                      setTimelineSecondsInput(String(timelineSeconds));
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      const value = Number(timelineSecondsInput);
+                      if (Number.isFinite(value)) {
+                        updateTimelineSeconds(value);
+                      } else {
+                        setTimelineSecondsInput(String(timelineSeconds));
+                      }
+                      event.currentTarget.blur();
+                    }
+                  }}
+                />
+              </label>
+              <div className="timeline-settings-preview">
+                <span>現在値: {timeStep.toFixed(2)}s / {timelineSeconds}s</span>
+              </div>
+              <button type="button" onClick={handleShare}>
+                共有URLを作成
+              </button>
+            </div>
+            {shareMessage && <p className="note">{shareMessage}</p>}
+            <p className="hint">
+              URL共有は状態・生徒データを含むため、データ量が多い場合はURLが長くなります。
+            </p>
+            <h2>タイムライン</h2>
             <p className="hint">
               バフはEXスキル配置とNS自動発動で追加されます。EXは生徒カードの
               ボタンをドラッグしてタイムラインにドロップしてください。配置後は
@@ -1260,9 +1274,7 @@ export default function App() {
                       const skill =
                         evt.skillType === "ex"
                           ? student.ex.find((item) => item.id === evt.skillId)
-                          : student.ns && student.ns.id === evt.skillId
-                            ? student.ns
-                            : null;
+                          : student.ns.find((item) => item.id === evt.skillId) ?? null;
                       if (!skill) return null;
                       const left = (evt.start / timelineSeconds) * 100;
                       const width = (evt.duration / timelineSeconds) * 100;
@@ -1304,14 +1316,6 @@ export default function App() {
                         const left = (buff.start / timelineSeconds) * 100;
                         const width =
                           ((buff.end - buff.start) / timelineSeconds) * 100;
-                        const valueLabel =
-                          buff.kind === "attack"
-                            ? `x${buff.value.toFixed(2)}`
-                            : `${buff.kind === "debuff" ? "-" : "+"}${(
-                                buff.value * 100
-                              ).toFixed(0)}%`;
-                        const statLabel =
-                          buff.kind === "attack" ? "攻撃" : statLabels[buff.stat];
                         return (
                         <div
                           key={buff.id}
@@ -1322,7 +1326,7 @@ export default function App() {
                             top: `${BUFF_TOP_OFFSET + lane * (BUFF_HEIGHT + BUFF_GAP)}px`,
                             height: `${BUFF_HEIGHT}px`,
                           }}
-                          data-tooltip={`${buff.name} (${statLabel}) ${valueLabel}\n${buff.source.toUpperCase()} | ${formatTime(
+                          data-tooltip={`${buff.name}\n${buff.source.toUpperCase()} | ${formatTime(
                             buff.start
                           )}-${formatTime(buff.end)}`}
                           role={buff.source === "ex" ? "button" : undefined}
@@ -1368,20 +1372,20 @@ export default function App() {
                       {ex.name}
                     </button>
                   ))}
-                  {student.ns && (
+                  {student.ns.map((ns) => (
                     <button
-                      key={student.ns.id}
+                      key={ns.id}
                       type="button"
                       className="chip chip-ns"
                       draggable
                       onDragStart={(event) =>
-                        handleDragStart(event, student.id, "ns", student.ns!.id)
+                        handleDragStart(event, student.id, "ns", ns.id)
                       }
                     >
                       <span className="chip-label">NS</span>
-                      {student.ns.name}
+                      {ns.name}
                     </button>
-                  )}
+                  ))}
                 </div>
               </div>
             ))}
@@ -1515,9 +1519,8 @@ export default function App() {
                 const skill =
                   selectedEvent.skillType === "ex"
                     ? owner?.ex.find((item) => item.id === selectedEvent.skillId)
-                    : owner?.ns && owner.ns.id === selectedEvent.skillId
-                      ? owner.ns
-                      : null;
+                    : owner?.ns.find((item) => item.id === selectedEvent.skillId) ??
+                      null;
                 if (!skill) return null;
                 return (
                   <div className="target-list">
@@ -1672,75 +1675,12 @@ export default function App() {
               </>
             </div>
           )}
-        </section>
-          <section className="panel intro">
-            <h2>生徒編集</h2>
+          <div className="timeline-editor">
+            <h3>スキル/生徒編集</h3>
             <p className="hint">
               ここで編集した能力値はURL共有に含まれます。
             </p>
             <div className="settings-row">
-              <label>
-                時間解像度(秒)
-                <input
-                  type="number"
-                  min={0.05}
-                  max={1}
-                  step={0.05}
-                  value={timeStepInput}
-                  onChange={(event) => setTimeStepInput(event.target.value)}
-                  onFocus={(event) => event.currentTarget.select()}
-                  onBlur={() => {
-                    const value = Number(timeStepInput);
-                    if (Number.isFinite(value)) {
-                      updateTimeStep(value);
-                    } else {
-                      setTimeStepInput(String(timeStep));
-                    }
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      const value = Number(timeStepInput);
-                      if (Number.isFinite(value)) {
-                        updateTimeStep(value);
-                      } else {
-                        setTimeStepInput(String(timeStep));
-                      }
-                      event.currentTarget.blur();
-                    }
-                  }}
-                />
-              </label>
-              <label>
-                戦闘時間(秒)
-                <input
-                  type="number"
-                  min={10}
-                  max={600}
-                  step={5}
-                  value={timelineSecondsInput}
-                  onChange={(event) => setTimelineSecondsInput(event.target.value)}
-                  onFocus={(event) => event.currentTarget.select()}
-                  onBlur={() => {
-                    const value = Number(timelineSecondsInput);
-                    if (Number.isFinite(value)) {
-                      updateTimelineSeconds(value);
-                    } else {
-                      setTimelineSecondsInput(String(timelineSeconds));
-                    }
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      const value = Number(timelineSecondsInput);
-                      if (Number.isFinite(value)) {
-                        updateTimelineSeconds(value);
-                      } else {
-                        setTimelineSecondsInput(String(timelineSeconds));
-                      }
-                      event.currentTarget.blur();
-                    }
-                  }}
-                />
-              </label>
               <div className="actions">
                 <button type="button" className="ghost" onClick={addStudent}>
                   生徒を追加
@@ -1786,206 +1726,125 @@ export default function App() {
                       }
                     />
                   </label>
-                <label>
-                  NS名
-                  <input
-                    type="text"
-                    value={selectedStudent.ns?.name ?? ""}
-                    onFocus={(event) => event.currentTarget.select()}
-                    onChange={(event) =>
-                      selectedStudent.ns &&
-                      updateNsSkill(selectedStudent.id, (ns) => ({
-                        ...ns,
-                          name: event.target.value,
-                        }))
-                      }
-                    />
-                </label>
-                  <label>
-                    攻撃力
-                    <input
-                      type="number"
-                      value={selectedStudent.stats.atk}
-                      onFocus={selectAllOnFocus}
-                      onChange={(event) =>
-                        updateStudent(selectedStudent.id, (current) => ({
-                          ...current,
-                          stats: {
-                            ...current.stats,
-                            atk: Number(event.target.value),
-                          },
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    会心
-                    <input
-                      type="number"
-                      value={selectedStudent.stats.crit}
-                      onFocus={selectAllOnFocus}
-                      onChange={(event) =>
-                        updateStudent(selectedStudent.id, (current) => ({
-                          ...current,
-                          stats: {
-                            ...current.stats,
-                            crit: Number(event.target.value),
-                          },
-                        }))
-                      }
-                    />
-                  </label>
-                <label>
-                  会心ダメージ
-                    <input
-                      type="number"
-                      value={selectedStudent.stats.critDmg}
-                      onFocus={selectAllOnFocus}
-                      onChange={(event) =>
-                        updateStudent(selectedStudent.id, (current) => ({
-                          ...current,
-                          stats: {
-                            ...current.stats,
-                          critDmg: Number(event.target.value),
-                        },
-                      }))
-                    }
-                  />
-                </label>
                 </div>
               ) : (
                 <p className="muted">生徒を選択してください。</p>
               )}
-              {selectedStudent?.ns && (
+              {selectedStudent && (
                 <div className="skill-editor">
                   <div className="skill-head">
-                  <h4>NS効果</h4>
-                  <button
-                    type="button"
-                    className="ghost"
-                    onClick={() => addNsBuff(selectedStudent.id)}
-                  >
-                    NS効果を追加
-                  </button>
+                    <h4>NSスキル</h4>
+                    <button
+                      type="button"
+                      className="ghost"
+                      onClick={() => addNsSkill(selectedStudent.id)}
+                    >
+                      NSを追加
+                    </button>
                   </div>
-                {selectedStudent.ns.buffs.length === 0 ? (
-                  <p className="muted">NS効果はまだありません。</p>
-                ) : (
-                  selectedStudent.ns.buffs.map((buff) => {
-                    const buffKind = buff.kind ?? "buff";
-                    return (
-                      <div key={buff.id} className="buff-editor">
-                        <select
-                          value={buffKind}
-                          onChange={(event) => {
-                            const nextKind = event.target.value as EffectKind;
-                            updateNsBuff(selectedStudent.id, buff.id, (current) => ({
-                              ...current,
-                              kind: nextKind,
-                              name: getBuffName(nextKind, current.stat),
-                              target: nextKind === "buff" ? "self" : "enemy",
-                              targetStudentIds:
-                                nextKind === "buff"
-                                  ? current.targetStudentIds
-                                  : undefined,
-                            }));
-                          }}
-                        >
-                          <option value="buff">バフ</option>
-                          <option value="debuff">デバフ</option>
-                          <option value="attack">攻撃</option>
-                        </select>
-                        {buffKind !== "attack" && (
-                          <label className="mini-field">
-                            <span>影響ステータス</span>
-                            <select
-                              value={buff.stat}
-                              onChange={(event) =>
-                                updateNsBuff(
-                                  selectedStudent.id,
-                                  buff.id,
-                                  (current) => {
-                                    const nextStat =
-                                      event.target.value as BuffStat;
-                                    return {
-                                      ...current,
-                                      stat: nextStat,
-                                      name: getBuffName(
-                                        current.kind ?? "buff",
-                                        nextStat
-                                      ),
-                                    };
+                  {selectedStudent.ns.length === 0 ? (
+                    <p className="muted">NSスキルがありません。</p>
+                  ) : (
+                    selectedStudent.ns.map((ns) => (
+                      <div key={ns.id} className="ex-editor">
+                        <div className="ex-head">
+                          <input
+                            type="text"
+                            value={ns.name}
+                            onFocus={(event) => event.currentTarget.select()}
+                            onChange={(event) =>
+                              updateNsSkill(selectedStudent.id, ns.id, (current) => ({
+                                ...current,
+                                name: event.target.value,
+                              }))
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => removeNsSkill(selectedStudent.id, ns.id)}
+                          >
+                            NS削除
+                          </button>
+                        </div>
+                        <div className="skill-head">
+                          <h5>NS効果</h5>
+                          <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => addNsBuff(selectedStudent.id, ns.id)}
+                          >
+                            NS効果を追加
+                          </button>
+                        </div>
+                        {ns.buffs.length === 0 ? (
+                          <p className="muted">NS効果はまだありません。</p>
+                        ) : (
+                          ns.buffs.map((buff) => {
+                            return (
+                              <div key={buff.id} className="buff-editor">
+                                <label className="mini-field">
+                                  <span>種類</span>
+                                  <input
+                                    type="text"
+                                    value={buff.name}
+                                    onFocus={(event) => event.currentTarget.select()}
+                                    onChange={(event) =>
+                                      updateNsBuff(
+                                        selectedStudent.id,
+                                        ns.id,
+                                        buff.id,
+                                        (current) => ({
+                                          ...current,
+                                          name: event.target.value,
+                                          stackGroup: event.target.value.trim() || "ns",
+                                        })
+                                      )
+                                    }
+                                  />
+                                </label>
+                                <label className="mini-field">
+                                  <span>継続時間</span>
+                                  <input
+                                    type="number"
+                                    step={0.1}
+                                    value={buff.duration}
+                                    className={buff.duration <= 0 ? "input-warning" : undefined}
+                                    onFocus={selectAllOnFocus}
+                                    onChange={(event) =>
+                                      updateNsBuff(
+                                        selectedStudent.id,
+                                        ns.id,
+                                        buff.id,
+                                        (current) => ({
+                                          ...current,
+                                          duration: Number(event.target.value),
+                                        })
+                                      )
+                                    }
+                                  />
+                                  {buff.duration <= 0 && (
+                                    <span className="field-warning">
+                                      0より大きい値を入力してください
+                                    </span>
+                                  )}
+                                </label>
+                                <button
+                                  type="button"
+                                  className="ghost"
+                                  onClick={() =>
+                                    removeNsBuff(selectedStudent.id, ns.id, buff.id)
                                   }
-                                )
-                              }
-                            >
-                              <option value="atk">攻撃力</option>
-                              <option value="crit">会心</option>
-                              <option value="critDmg">会心ダメ</option>
-                            </select>
-                          </label>
+                                >
+                                  削除
+                                </button>
+                              </div>
+                            );
+                          })
                         )}
-                        <label className="mini-field">
-                          <span>効果の数値</span>
-                          <input
-                            type="number"
-                            step={0.01}
-                            value={buff.value}
-                            className={buff.value <= 0 ? "input-warning" : undefined}
-                            onFocus={selectAllOnFocus}
-                            onChange={(event) =>
-                              updateNsBuff(
-                                selectedStudent.id,
-                                buff.id,
-                                (current) => ({
-                                  ...current,
-                                  value: Number(event.target.value),
-                                })
-                              )
-                            }
-                          />
-                          {buff.value <= 0 && (
-                            <span className="field-warning">
-                              0より大きい値を推奨
-                            </span>
-                          )}
-                        </label>
-                        <label className="mini-field">
-                          <span>継続時間</span>
-                          <input
-                            type="number"
-                            step={0.1}
-                            value={buff.duration}
-                            className={buff.duration <= 0 ? "input-warning" : undefined}
-                            onFocus={selectAllOnFocus}
-                            onChange={(event) =>
-                              updateNsBuff(
-                                selectedStudent.id,
-                                buff.id,
-                                (current) => ({
-                                  ...current,
-                                  duration: Number(event.target.value),
-                                })
-                              )
-                            }
-                          />
-                          {buff.duration <= 0 && (
-                            <span className="field-warning">
-                              0より大きい値を入力してください
-                            </span>
-                          )}
-                        </label>
-                        <button
-                          type="button"
-                          className="ghost"
-                          onClick={() => removeNsBuff(selectedStudent.id, buff.id)}
-                        >
-                          削除
-                        </button>
                       </div>
-                    );
-                  })
-                )}
+                    ))
+                  )}
                 </div>
               )}
               {selectedStudent && (
@@ -2043,74 +1902,14 @@ export default function App() {
                         <p className="muted">EX効果がありません。</p>
                       ) : (
                         ex.buffs.map((buff) => {
-                          const buffKind = buff.kind ?? "buff";
                           return (
                             <div key={buff.id} className="buff-editor">
-                                <select
-                                  value={buffKind}
-                                  onChange={(event) => {
-                                    const nextKind = event.target.value as EffectKind;
-                                    updateExBuff(
-                                      selectedStudent.id,
-                                      ex.id,
-                                      buff.id,
-                                      (current) => ({
-                                        ...current,
-                                        kind: nextKind,
-                                        name: getBuffName(nextKind, current.stat),
-                                        target:
-                                          nextKind === "buff" ? "self" : "enemy",
-                                        targetStudentIds:
-                                          nextKind === "buff"
-                                            ? current.targetStudentIds
-                                            : undefined,
-                                      })
-                                    );
-                                  }}
-                                >
-                                  <option value="buff">バフ</option>
-                                  <option value="debuff">デバフ</option>
-                                  <option value="attack">攻撃</option>
-                                </select>
-                                {buffKind !== "attack" && (
-                                  <label className="mini-field">
-                                    <span>影響ステータス</span>
-                                    <select
-                                      value={buff.stat}
-                                      onChange={(event) =>
-                                        updateExBuff(
-                                          selectedStudent.id,
-                                          ex.id,
-                                          buff.id,
-                                          (current) => {
-                                            const nextStat =
-                                              event.target.value as BuffStat;
-                                            return {
-                                              ...current,
-                                              stat: nextStat,
-                                              name: getBuffName(
-                                                current.kind ?? "buff",
-                                                nextStat
-                                              ),
-                                            };
-                                          }
-                                        )
-                                      }
-                                    >
-                                      <option value="atk">攻撃力</option>
-                                      <option value="crit">会心</option>
-                                      <option value="critDmg">会心ダメ</option>
-                                    </select>
-                                  </label>
-                                )}
                                 <label className="mini-field">
-                                  <span>効果の数値</span>
+                                  <span>種類</span>
                                   <input
-                                    type="number"
-                                    step={0.01}
-                                    value={buff.value}
-                                    className={buff.value <= 0 ? "input-warning" : undefined}
-                                    onFocus={selectAllOnFocus}
+                                    type="text"
+                                    value={buff.name}
+                                    onFocus={(event) => event.currentTarget.select()}
                                     onChange={(event) =>
                                       updateExBuff(
                                         selectedStudent.id,
@@ -2118,16 +1917,12 @@ export default function App() {
                                         buff.id,
                                         (current) => ({
                                           ...current,
-                                          value: Number(event.target.value),
+                                          name: event.target.value,
+                                          stackGroup: event.target.value.trim() || "ex",
                                         })
                                       )
                                     }
                                   />
-                                  {buff.value <= 0 && (
-                                    <span className="field-warning">
-                                      0より大きい値を推奨
-                                    </span>
-                                  )}
                                 </label>
                                 <label className="mini-field">
                                   <span>継続時間</span>
@@ -2180,7 +1975,7 @@ export default function App() {
                 </div>
               )}
               <div className="enemy-editor">
-                <h4>敵ステータス</h4>
+                <h4>敵設定</h4>
                 <div className="student-fields">
                   <label>
                     名前
@@ -2196,142 +1991,10 @@ export default function App() {
                       }
                     />
                   </label>
-                  <label>
-                    攻撃力
-                    <input
-                      type="number"
-                      value={enemy.stats.atk}
-                      onFocus={selectAllOnFocus}
-                      onChange={(event) =>
-                        setEnemy((current) => ({
-                          ...current,
-                          stats: {
-                            ...current.stats,
-                            atk: Number(event.target.value),
-                          },
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    会心
-                    <input
-                      type="number"
-                      value={enemy.stats.crit}
-                      onFocus={selectAllOnFocus}
-                      onChange={(event) =>
-                        setEnemy((current) => ({
-                          ...current,
-                          stats: {
-                            ...current.stats,
-                            crit: Number(event.target.value),
-                          },
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    会心ダメージ
-                    <input
-                      type="number"
-                      value={enemy.stats.critDmg}
-                      onFocus={selectAllOnFocus}
-                      onChange={(event) =>
-                        setEnemy((current) => ({
-                          ...current,
-                          stats: {
-                            ...current.stats,
-                            critDmg: Number(event.target.value),
-                          },
-                        }))
-                      }
-                    />
-                  </label>
                 </div>
               </div>
             </div>
-            <div className="actions share-actions">
-              <button type="button" onClick={handleShare}>
-                共有URLを作成
-              </button>
-            </div>
-            {shareMessage && <p className="note">{shareMessage}</p>}
-            <p className="hint">
-              URL共有は状態・生徒データを含むため、データ量が多い場合はURLが長くなります。
-            </p>
-          </section>
-        </div>
-
-        <div className="layout-row">
-          <section className="panel inspector">
-          <h2>時刻ステータス</h2>
-          <div className="inspector-controls">
-            <select
-              value={selectedStudentId}
-              onChange={(event) => setSelectedStudentId(event.target.value)}
-            >
-              {students.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {student.name}
-                </option>
-              ))}
-              <option value={enemy.id}>{enemy.name}</option>
-            </select>
-            <span className="time-tag">{formatTime(inspectTime)}</span>
           </div>
-          {selectedTarget && inspectStats ? (
-            <div className="inspector-grid">
-              <div className="card">
-                <h3>基礎ステータス</h3>
-                <ul>
-                  <li>攻撃力: {selectedTarget.stats.atk}</li>
-                  <li>会心: {selectedTarget.stats.crit}</li>
-                  <li>会心ダメージ: {selectedTarget.stats.critDmg}</li>
-                </ul>
-              </div>
-              <div className="card">
-                <h3>効果込み</h3>
-                <ul>
-                  <li>攻撃力: {inspectStats.computed.atk.toFixed(0)}</li>
-                  <li>会心: {inspectStats.computed.crit.toFixed(0)}</li>
-                  <li>
-                    会心ダメージ: {inspectStats.computed.critDmg.toFixed(0)}
-                  </li>
-                </ul>
-              </div>
-              <div className="card">
-                <h3>有効効果</h3>
-                {inspectStats.active.length === 0 ? (
-                  <p className="muted">この時刻の効果はありません。</p>
-                ) : (
-                  <ul>
-                    {inspectStats.active.map((buff) => (
-                      <li key={buff.id}>
-                        {buff.name} (
-                        {buff.kind === "attack"
-                          ? "攻撃"
-                          : statLabels[buff.stat]}
-                        ){" "}
-                        {buff.kind === "attack"
-                          ? `x${buff.value.toFixed(2)}`
-                          : `${buff.kind === "debuff" ? "-" : "+"}${(
-                              buff.value * 100
-                            ).toFixed(0)}%`}{" "}
-                        [{buff.stackGroup}]
-                        {buff.sourceStudentId !== buff.studentId
-                          ? ` / ${studentNameById[buff.sourceStudentId]}→${
-                              studentNameById[buff.studentId]
-                            }`
-                          : ""}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="muted">生徒を選択してください。</p>
-          )}
         </section>
         </div>
 
@@ -2347,18 +2010,8 @@ export default function App() {
               buffInstancesByStart.map((buff) => (
                 <div key={buff.id} className={`buff-row ${buff.source} ${buff.kind}`}>
                   <strong>{buff.name}</strong>
-                  <span>
-                    {buff.kind === "attack"
-                      ? "攻撃"
-                      : `${statLabels[buff.stat]} (${kindLabels[buff.kind]})`}
-                  </span>
-                  <span>
-                    {buff.kind === "attack"
-                      ? `x${buff.value.toFixed(2)}`
-                      : `${buff.kind === "debuff" ? "-" : "+"}${(
-                          buff.value * 100
-                        ).toFixed(0)}%`}
-                  </span>
+                  <span>種類: {buff.stackGroup}</span>
+                  <span>継続: {formatTime(buff.end - buff.start)}</span>
                   <span>
                     {studentNameById[buff.sourceStudentId]}→
                     {studentNameById[buff.studentId]} / {formatTime(buff.start)}-
