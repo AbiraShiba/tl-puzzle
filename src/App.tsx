@@ -268,7 +268,8 @@ const buildBuffInstances = (
           ? Math.max(timeStep, buff.duration ?? timeStep)
           : event.duration ?? buff.duration ?? timeStep;
       const end = Math.min(event.start + duration, timelineSeconds);
-      const normalizedStackGroup = buff.stackGroup.trim() || "default";
+      const stackGroup =
+        typeof buff.stackGroup === "string" ? buff.stackGroup : "";
       finalTargets.forEach((targetStudentId) => {
         instances.push({
           id: `${event.id}:${buff.id}:${targetStudentId}`,
@@ -280,7 +281,7 @@ const buildBuffInstances = (
           value: 0,
           start: event.start,
           end,
-          stackGroup: normalizedStackGroup,
+          stackGroup,
           source: event.skillType,
           sourceId: skill.id,
           sourceEventId: event.id,
@@ -298,7 +299,7 @@ const buildBuffInstances = (
 const applyOverwriteRules = (instances: BuffInstance[]) => {
   const grouped = new Map<string, BuffInstance[]>();
   instances.forEach((buff) => {
-    const key = `${buff.studentId}:${buff.stat}:${buff.stackGroup}:${buff.kind}`;
+    const key = `${buff.studentId}:${buff.stackGroup}`;
     const list = grouped.get(key);
     if (list) {
       list.push({ ...buff });
@@ -545,17 +546,7 @@ export default function App() {
     );
     return applyOverwriteRules(raw);
   }, [students, events, nsEnabled, nsTargets, timelineSeconds, timeStep]);
-  const buffLanesByStudent = useMemo(() => {
-    const result: Record<
-      string,
-      { laneMap: Record<string, number>; laneCount: number }
-    > = {};
-    [...students, enemy].forEach((student) => {
-      const buffs = buffInstances.filter((item) => item.studentId === student.id);
-      result[student.id] = buildBuffLanes(buffs);
-    });
-    return result;
-  }, [students, enemy, buffInstances]);
+  const buffLanes = useMemo(() => buildBuffLanes(buffInstances), [buffInstances]);
   const buffInstancesByStart = useMemo(
     () =>
       [...buffInstances].sort(
@@ -583,7 +574,7 @@ export default function App() {
     );
   };
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>, studentId: string) => {
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const payload = event.dataTransfer.getData("text/plain");
     if (!payload) return;
@@ -600,6 +591,7 @@ export default function App() {
         skillType: SkillType;
         skillId: string;
       };
+      const studentId = parsed.studentId;
       const student = students.find((item) => item.id === studentId);
       if (!student) return;
       const skill =
@@ -1115,6 +1107,16 @@ export default function App() {
       ),
     [students, enemy]
   );
+  const getEventTargetLabel = (evt: ExEvent) => {
+    if (evt.target === "all") return "全員";
+    if (evt.target === "enemy") return studentNameById[ENEMY_ID] ?? "敵";
+    if (evt.target === "student") {
+      const ids =
+        evt.targetStudentIds?.length ? evt.targetStudentIds : [evt.studentId];
+      return ids.map((id) => studentNameById[id] ?? id).join(", ");
+    }
+    return studentNameById[evt.studentId] ?? evt.studentId;
+  };
   const tickInterval = 10;
   const tickCount = Math.max(2, Math.floor(timelineSeconds / tickInterval) + 1);
 
@@ -1241,115 +1243,111 @@ export default function App() {
               className="timeline-grid timeline-canvas"
               style={{ minWidth: `${timelineSeconds * TIMELINE_SCALE}px` }}
             >
-            <div
-              className="timeline-ruler"
-              style={{ gridTemplateColumns: `repeat(${tickCount}, 1fr)` }}
-            >
-              {Array.from({ length: tickCount }).map((_, index) => (
-                <span key={index}>{index * tickInterval}s</span>
-              ))}
-            </div>
-            {[...students, enemy].map((student) => {
-              const isEnemy = student.id === ENEMY_ID;
-              return (
-                <div key={student.id} className="timeline-row">
-                  <div className="row-label">{student.name}</div>
-                  <div
-                    className="timeline-track"
-                    style={{
-                      height: `${
-                        BUFF_TOP_OFFSET +
-                        buffLanesByStudent[student.id].laneCount *
-                          (BUFF_HEIGHT + BUFF_GAP) +
-                        TRACK_PADDING_BOTTOM
-                      }px`,
-                    }}
-                    onDragOver={(event) => !isEnemy && event.preventDefault()}
-                    onDrop={(event) => !isEnemy && handleDrop(event, student.id)}
-                  >
-                    {!isEnemy &&
-                      events
-                        .filter((evt) => evt.studentId === student.id)
-                    .map((evt) => {
-                      const skill =
-                        evt.skillType === "ex"
-                          ? student.ex.find((item) => item.id === evt.skillId)
-                          : student.ns.find((item) => item.id === evt.skillId) ?? null;
-                      if (!skill) return null;
-                      const left = (evt.start / timelineSeconds) * 100;
-                      const width = (evt.duration / timelineSeconds) * 100;
-                      const top = evt.skillType === "ns" ? NS_ROW_TOP : EX_ROW_TOP;
-                      return (
-                        <button
-                          key={evt.id}
-                          type="button"
-                          className={`timeline-block${
-                            selectedEventId === evt.id ? " selected" : ""
-                          }${evt.skillType === "ns" ? " ns" : ""}${
-                            evt.skillType === "ex" ? " ex" : ""
-                          }`}
-                          style={{ left: `${left}%`, width: `${width}%`, top: `${top}px` }}
-                          onClick={() => {
-                            if (dragMovedRef.current) {
-                              dragMovedRef.current = false;
-                              return;
-                            }
-                            setSelectedEventId(evt.id);
-                            setSelectedBuffRef(null);
-                          }}
-                          onMouseDown={(event) => handleBlockMouseDown(event, evt)}
-                          title={`${skill.name} @ ${formatTime(evt.start)}`}
-                        >
-                          {skill.name}
-                          <span
-                            className="resize-handle"
-                            onMouseDown={(event) => handleResizeMouseDown(event, evt)}
-                          />
-                        </button>
-                          );
-                        })}
-                    {buffInstances
-                      .filter((item) => item.studentId === student.id)
-                      .map((buff) => {
-                        const lane =
-                          buffLanesByStudent[student.id].laneMap[buff.id] ?? 0;
-                        const left = (buff.start / timelineSeconds) * 100;
-                        const width =
-                          ((buff.end - buff.start) / timelineSeconds) * 100;
-                        return (
-                        <div
-                          key={buff.id}
-                          className={`buff-bar inline ${buff.source} ${buff.kind}`}
-                          style={{
-                            left: `${left}%`,
-                            width: `${width}%`,
-                            top: `${BUFF_TOP_OFFSET + lane * (BUFF_HEIGHT + BUFF_GAP)}px`,
-                            height: `${BUFF_HEIGHT}px`,
-                          }}
-                          data-tooltip={`${buff.name}\n${buff.source.toUpperCase()} | ${formatTime(
-                            buff.start
-                          )}-${formatTime(buff.end)}`}
-                          role={buff.source === "ex" ? "button" : undefined}
-                          tabIndex={buff.source === "ex" ? 0 : undefined}
-                          onClick={() => {
-                            if (buff.source !== "ex" || !buff.sourceEventId) return;
-                            setSelectedEventId(buff.sourceEventId);
-                            setSelectedBuffRef({
-                              eventId: buff.sourceEventId,
-                              buffId: buff.sourceBuffId,
-                            });
-                          }}
+              <div
+                className="timeline-ruler"
+                style={{ gridTemplateColumns: `repeat(${tickCount}, 1fr)` }}
+              >
+                {Array.from({ length: tickCount }).map((_, index) => (
+                  <span key={index}>{index * tickInterval}s</span>
+                ))}
+              </div>
+              <div className="timeline-row single">
+                <div className="row-label">全体TL</div>
+                <div
+                  className="timeline-track"
+                  style={{
+                    height: `${
+                      BUFF_TOP_OFFSET +
+                      buffLanes.laneCount * (BUFF_HEIGHT + BUFF_GAP) +
+                      TRACK_PADDING_BOTTOM
+                    }px`,
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={handleDrop}
+                >
+                  {events.map((evt) => {
+                    const student = students.find((item) => item.id === evt.studentId);
+                    if (!student) return null;
+                    const skill =
+                      evt.skillType === "ex"
+                        ? student.ex.find((item) => item.id === evt.skillId)
+                        : student.ns.find((item) => item.id === evt.skillId) ?? null;
+                    if (!skill) return null;
+                    const left = (evt.start / timelineSeconds) * 100;
+                    const width = (evt.duration / timelineSeconds) * 100;
+                    const top = evt.skillType === "ns" ? NS_ROW_TOP : EX_ROW_TOP;
+                    const sourceName = studentNameById[evt.studentId] ?? evt.studentId;
+                    const targetLabel = getEventTargetLabel(evt);
+                    return (
+                      <button
+                        key={evt.id}
+                        type="button"
+                        className={`timeline-block${
+                          selectedEventId === evt.id ? " selected" : ""
+                        }${evt.skillType === "ns" ? " ns" : ""}${
+                          evt.skillType === "ex" ? " ex" : ""
+                        }`}
+                        style={{ left: `${left}%`, width: `${width}%`, top: `${top}px` }}
+                        onClick={() => {
+                          if (dragMovedRef.current) {
+                            dragMovedRef.current = false;
+                            return;
+                          }
+                          setSelectedEventId(evt.id);
+                          setSelectedBuffRef(null);
+                        }}
+                        onMouseDown={(event) => handleBlockMouseDown(event, evt)}
+                        title={`${sourceName} / ${skill.name} @ ${formatTime(
+                          evt.start
+                        )}\n対象: ${targetLabel}`}
+                      >
+                        {sourceName} {skill.name}
+                        <span
+                          className="resize-handle"
+                          onMouseDown={(event) => handleResizeMouseDown(event, evt)}
                         />
-                        );
-                      })}
-                    <div
-                      className="timeline-cursor"
-                      style={{ left: `${(inspectTime / timelineSeconds) * 100}%` }}
-                    />
-                  </div>
+                      </button>
+                    );
+                  })}
+                  {buffInstances.map((buff) => {
+                    const lane = buffLanes.laneMap[buff.id] ?? 0;
+                    const left = (buff.start / timelineSeconds) * 100;
+                    const width = ((buff.end - buff.start) / timelineSeconds) * 100;
+                    const sourceName =
+                      studentNameById[buff.sourceStudentId] ?? buff.sourceStudentId;
+                    const targetName = studentNameById[buff.studentId] ?? buff.studentId;
+                    return (
+                      <div
+                        key={buff.id}
+                        className={`buff-bar inline ${buff.source} ${buff.kind}`}
+                        style={{
+                          left: `${left}%`,
+                          width: `${width}%`,
+                          top: `${BUFF_TOP_OFFSET + lane * (BUFF_HEIGHT + BUFF_GAP)}px`,
+                          height: `${BUFF_HEIGHT}px`,
+                        }}
+                        data-tooltip={`${buff.name}\n${sourceName} -> ${targetName}\n${formatTime(
+                          buff.start
+                        )}-${formatTime(buff.end)}`}
+                        role={buff.source === "ex" ? "button" : undefined}
+                        tabIndex={buff.source === "ex" ? 0 : undefined}
+                        onClick={() => {
+                          if (buff.source !== "ex" || !buff.sourceEventId) return;
+                          setSelectedEventId(buff.sourceEventId);
+                          setSelectedBuffRef({
+                            eventId: buff.sourceEventId,
+                            buffId: buff.sourceBuffId,
+                          });
+                        }}
+                      />
+                    );
+                  })}
+                  <div
+                    className="timeline-cursor"
+                    style={{ left: `${(inspectTime / timelineSeconds) * 100}%` }}
+                  />
                 </div>
-              );
-            })}
+              </div>
             </div>
           </div>
           <div className="ex-palette">
@@ -1784,7 +1782,7 @@ export default function App() {
                             return (
                               <div key={buff.id} className="buff-editor">
                                 <label className="mini-field">
-                                  <span>種類</span>
+                                  <span>効果名</span>
                                   <input
                                     type="text"
                                     value={buff.name}
@@ -1797,7 +1795,25 @@ export default function App() {
                                         (current) => ({
                                           ...current,
                                           name: event.target.value,
-                                          stackGroup: event.target.value.trim() || "ns",
+                                        })
+                                      )
+                                    }
+                                  />
+                                </label>
+                                <label className="mini-field">
+                                  <span>種類</span>
+                                  <input
+                                    type="text"
+                                    value={buff.stackGroup}
+                                    onFocus={(event) => event.currentTarget.select()}
+                                    onChange={(event) =>
+                                      updateNsBuff(
+                                        selectedStudent.id,
+                                        ns.id,
+                                        buff.id,
+                                        (current) => ({
+                                          ...current,
+                                          stackGroup: event.target.value,
                                         })
                                       )
                                     }
@@ -1905,7 +1921,7 @@ export default function App() {
                           return (
                             <div key={buff.id} className="buff-editor">
                                 <label className="mini-field">
-                                  <span>種類</span>
+                                  <span>効果名</span>
                                   <input
                                     type="text"
                                     value={buff.name}
@@ -1918,7 +1934,25 @@ export default function App() {
                                         (current) => ({
                                           ...current,
                                           name: event.target.value,
-                                          stackGroup: event.target.value.trim() || "ex",
+                                        })
+                                      )
+                                    }
+                                  />
+                                </label>
+                                <label className="mini-field">
+                                  <span>種類</span>
+                                  <input
+                                    type="text"
+                                    value={buff.stackGroup}
+                                    onFocus={(event) => event.currentTarget.select()}
+                                    onChange={(event) =>
+                                      updateExBuff(
+                                        selectedStudent.id,
+                                        ex.id,
+                                        buff.id,
+                                        (current) => ({
+                                          ...current,
+                                          stackGroup: event.target.value,
                                         })
                                       )
                                     }
@@ -2010,7 +2044,7 @@ export default function App() {
               buffInstancesByStart.map((buff) => (
                 <div key={buff.id} className={`buff-row ${buff.source} ${buff.kind}`}>
                   <strong>{buff.name}</strong>
-                  <span>種類: {buff.stackGroup}</span>
+                  <span>種類: {buff.stackGroup || "(未設定)"}</span>
                   <span>継続: {formatTime(buff.end - buff.start)}</span>
                   <span>
                     {studentNameById[buff.sourceStudentId]}→
