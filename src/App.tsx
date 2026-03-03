@@ -1141,7 +1141,7 @@ export default function App() {
           <div className="panel-head">
             <div className="timeline-settings">
               <label>
-                時間解像度(秒)
+                時間解像度 (秒)
                 <input
                   type="number"
                   min={0.05}
@@ -1172,7 +1172,7 @@ export default function App() {
                 />
               </label>
               <label>
-                戦闘時間(秒)
+                戦闘時間 (秒)
                 <input
                   type="number"
                   min={10}
@@ -1422,7 +1422,7 @@ export default function App() {
                 </div>
               )}
               <label>
-                開始秒数
+                開始時間 (秒)
                   <input
                     type="number"
                     step={timeStep}
@@ -1444,7 +1444,7 @@ export default function App() {
                 />
               </label>
               <label>
-                継続時間
+                継続時間 (秒)
                   <input
                     type="number"
                     step={timeStep}
@@ -1576,7 +1576,7 @@ export default function App() {
               </div>
               <>
                 <label>
-                  効果対象(この配置のみ)
+                  効果対象 (この配置のみ)
                   <select
                     value={
                       selectedBuff.event.buffTargets?.[selectedBuff.buff.id]?.target ??
@@ -1649,9 +1649,6 @@ export default function App() {
           )}
           <div className="timeline-editor">
             <h3>スキル/生徒編集</h3>
-            <p className="hint">
-              ここで編集した能力値はURL共有に含まれます。
-            </p>
             <div className="settings-row">
               <div className="actions">
                 <button type="button" className="ghost" onClick={addStudent}>
@@ -1794,7 +1791,7 @@ export default function App() {
                                   />
                                 </label>
                                 <label className="mini-field">
-                                  <span>継続時間</span>
+                                  <span>継続時間 (秒)</span>
                                   <input
                                     type="number"
                                     step={0.1}
@@ -1933,7 +1930,7 @@ export default function App() {
                                   />
                                 </label>
                                 <label className="mini-field">
-                                  <span>継続時間</span>
+                                  <span>継続時間 (秒)</span>
                                   <input
                                     type="number"
                                     step={0.1}
