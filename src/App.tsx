@@ -634,6 +634,13 @@ export default function App() {
     });
     return result;
   }, [students, enemy, buffInstances]);
+  const buffInstancesByStart = useMemo(
+    () =>
+      [...buffInstances].sort(
+        (a, b) => a.start - b.start || a.end - b.end || a.id.localeCompare(b.id)
+      ),
+    [buffInstances]
+  );
 
   const selectedStudent = students.find((student) => student.id === selectedStudentId);
   const selectedTarget =
@@ -2334,10 +2341,10 @@ export default function App() {
             効果はタイムライン内に重ねて表示されています。ここでは一覧で確認できます。
           </p>
           <div className="buff-list">
-            {buffInstances.length === 0 ? (
+            {buffInstancesByStart.length === 0 ? (
               <p className="muted">現在アクティブな効果はありません。</p>
             ) : (
-              buffInstances.map((buff) => (
+              buffInstancesByStart.map((buff) => (
                 <div key={buff.id} className={`buff-row ${buff.source} ${buff.kind}`}>
                   <strong>{buff.name}</strong>
                   <span>
