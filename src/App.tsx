@@ -499,13 +499,6 @@ export default function App() {
     return applyOverwriteRules(raw);
   }, [students, events, nsEnabled, nsTargets, timelineSeconds, timeStep]);
   const buffLanes = useMemo(() => buildBuffLanes(buffInstances), [buffInstances]);
-  const buffInstancesByStart = useMemo(
-    () =>
-      [...buffInstances].sort(
-        (a, b) => a.start - b.start || a.end - b.end || a.id.localeCompare(b.id)
-      ),
-    [buffInstances]
-  );
 
   const selectedStudent = students.find((student) => student.id === selectedStudentId);
   const allTargets = useMemo(() => [...students, enemy], [students, enemy]);
@@ -1070,6 +1063,64 @@ export default function App() {
     }
     return studentNameById[evt.studentId] ?? evt.studentId;
   };
+  const buffListRows = useMemo(() => {
+    const grouped = new Map<
+      string,
+      Omit<BuffInstance, "id" | "studentId"> & { targetStudentIds: Set<string> }
+    >();
+    buffInstances.forEach((buff) => {
+      const key = [
+        buff.source,
+        buff.sourceId,
+        buff.sourceEventId ?? "",
+        buff.sourceBuffId,
+        buff.sourceStudentId,
+        buff.name,
+        buff.kind,
+        buff.stackGroup,
+        buff.start,
+        buff.end,
+      ].join("|");
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.targetStudentIds.add(buff.studentId);
+        return;
+      }
+      grouped.set(key, {
+        sourceStudentId: buff.sourceStudentId,
+        name: buff.name,
+        kind: buff.kind,
+        stat: buff.stat,
+        value: buff.value,
+        start: buff.start,
+        end: buff.end,
+        stackGroup: buff.stackGroup,
+        source: buff.source,
+        sourceId: buff.sourceId,
+        sourceEventId: buff.sourceEventId,
+        sourceBuffId: buff.sourceBuffId,
+        targetStudentIds: new Set([buff.studentId]),
+      });
+    });
+
+    const targetOrder = new Map(allTargets.map((target, index) => [target.id, index]));
+    return Array.from(grouped.values())
+      .map((row) => {
+        const targetNames = Array.from(row.targetStudentIds)
+          .sort(
+            (a, b) =>
+              (targetOrder.get(a) ?? Number.MAX_SAFE_INTEGER) -
+                (targetOrder.get(b) ?? Number.MAX_SAFE_INTEGER) ||
+              a.localeCompare(b)
+          )
+          .map((id) => studentNameById[id] ?? id);
+        return {
+          ...row,
+          targetLabel: targetNames.join(", "),
+        };
+      })
+      .sort((a, b) => a.start - b.start || a.end - b.end || a.name.localeCompare(b.name));
+  }, [buffInstances, allTargets, studentNameById]);
   const tickInterval = 10;
   const tickCount = Math.max(2, Math.floor(timelineSeconds / tickInterval) + 1);
 
@@ -1971,17 +2022,22 @@ export default function App() {
             効果はタイムライン内に重ねて表示されています。ここでは一覧で確認できます。
           </p>
           <div className="buff-list">
-            {buffInstancesByStart.length === 0 ? (
+            {buffListRows.length === 0 ? (
               <p className="muted">現在アクティブな効果はありません。</p>
             ) : (
-              buffInstancesByStart.map((buff) => (
-                <div key={buff.id} className={`buff-row ${buff.source} ${buff.kind}`}>
+              buffListRows.map((buff) => (
+                <div
+                  key={`${buff.source}:${buff.sourceEventId ?? "none"}:${buff.sourceBuffId}:${
+                    buff.start
+                  }:${buff.end}`}
+                  className={`buff-row ${buff.source} ${buff.kind}`}
+                >
                   <strong>{buff.name}</strong>
                   <span>種類: {buff.stackGroup || "(未設定)"}</span>
                   <span>継続: {formatTime(buff.end - buff.start)}</span>
                   <span>
-                    {studentNameById[buff.sourceStudentId]}→
-                    {studentNameById[buff.studentId]} / {formatTime(buff.start)}-
+                    {studentNameById[buff.sourceStudentId]}→{buff.targetLabel} /{" "}
+                    {formatTime(buff.start)}-
                     {formatTime(buff.end)}
                   </span>
                 </div>
