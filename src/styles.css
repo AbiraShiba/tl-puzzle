@@ -477,25 +477,6 @@ input[type="number"] {
   gap: 12px;
 }
 
-.timeline-controls {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.timeline-controls label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.9rem;
-  color: var(--ink-soft);
-}
-
-.timeline-controls input[type="range"] {
-  width: min(420px, 80vw);
-}
-
 .timeline-settings {
   display: flex;
   gap: 12px;
@@ -548,6 +529,29 @@ input[type="number"] {
   margin-top: 10px;
   display: grid;
   gap: 12px;
+}
+
+.timeline-danger-zone {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.danger-button {
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  border: 1px solid #fca5a5;
+  background: #fff1f2;
+  color: #b91c1c;
+  box-shadow: none;
+  opacity: 0.78;
+}
+
+.danger-button:hover {
+  transform: none;
+  box-shadow: none;
+  opacity: 1;
 }
 
 .timeline-editor h3 {

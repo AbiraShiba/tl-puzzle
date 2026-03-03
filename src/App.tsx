@@ -774,9 +774,6 @@ export default function App() {
     const nextTimeStep = parsed.timeStep ?? DEFAULT_TIME_STEP;
     setTimelineSeconds(nextTimeline);
     setTimeStep(nextTimeStep);
-    setInspectTime((current) =>
-      Math.round(Math.min(current, nextTimeline) / nextTimeStep) * nextTimeStep
-    );
     setEvents(clampEventsToTimeline(normalized, nextTimeline, nextTimeStep));
     if (parsed.enemy) {
       setEnemy(parsed.enemy);
@@ -801,6 +798,12 @@ export default function App() {
   const handleTimelineClear = () => {
     setEvents([]);
     setSelectedBuffRef(null);
+  };
+  const handleTimelineClearDanger = () => {
+    if (!window.confirm("タイムライン上の配置をすべて削除します。よろしいですか？")) {
+      return;
+    }
+    handleTimelineClear();
   };
 
   const updateEvent = (eventId: string, patch: Partial<ExEvent>) => {
@@ -834,7 +837,6 @@ export default function App() {
   const updateTimelineSeconds = (value: number) => {
     const nextSeconds = clamp(Math.round(value), 10, 600);
     setTimelineSeconds(nextSeconds);
-    setInspectTime((current) => Math.min(current, nextSeconds));
     setEvents((current) => clampEventsToTimeline(current, nextSeconds, timeStep));
   };
 
@@ -849,7 +851,6 @@ export default function App() {
   const updateTimeStep = (value: number) => {
     const nextStep = clamp(Math.round(value * 100) / 100, 0.05, 1);
     setTimeStep(nextStep);
-    setInspectTime((current) => Math.round(current / nextStep) * nextStep);
     setEvents((current) =>
       current.map((evt) => {
         const nextStart = clamp(
@@ -1213,11 +1214,6 @@ export default function App() {
               URL共有は状態・生徒データを含むため、データ量が多い場合はURLが長くなります。
             </p>
             <h2>タイムライン</h2>
-          <div className="timeline-controls">
-            <button type="button" className="ghost" onClick={handleTimelineClear}>
-              すべて削除
-            </button>
-          </div>
           </div>
 
           <div className="timeline-scroll">
@@ -2006,6 +2002,15 @@ export default function App() {
                 </div>
               </div>
             </div>
+          </div>
+          <div className="timeline-danger-zone">
+            <button
+              type="button"
+              className="danger-button"
+              onClick={handleTimelineClearDanger}
+            >
+              タイムラインをすべて削除
+            </button>
           </div>
         </section>
         </div>
