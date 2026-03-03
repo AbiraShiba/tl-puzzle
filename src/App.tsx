@@ -2032,11 +2032,12 @@ export default function App() {
                   }:${buff.end}`}
                   className={`buff-row ${buff.source} ${buff.kind}`}
                 >
+                  <span>{studentNameById[buff.sourceStudentId]}</span>
                   <strong>{buff.name}</strong>
-                  <span>種類: {buff.stackGroup || "(未設定)"}</span>
-                  <span>継続: {formatTime(buff.end - buff.start)}</span>
+                  <span>{buff.stackGroup || "(未設定)"}</span>
+                  <span>{formatTime(buff.end - buff.start)}</span>
                   <span>
-                    {studentNameById[buff.sourceStudentId]}→{buff.targetLabel} /{" "}
+                    対象: {buff.targetLabel} /{" "}
                     {formatTime(buff.start)}-
                     {formatTime(buff.end)}
                   </span>
