@@ -398,19 +398,6 @@ input[type="number"] {
   color: var(--muted);
 }
 
-.stats {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--ink-soft);
-}
-
-.stats strong {
-  display: block;
-  color: var(--ink);
-}
-
 .switch {
   display: flex;
   gap: 10px;
@@ -490,33 +477,50 @@ input[type="number"] {
   gap: 12px;
 }
 
-.timeline-controls {
+.timeline-settings {
   display: flex;
-  gap: 16px;
-  align-items: center;
+  gap: 12px;
+  align-items: flex-end;
   flex-wrap: wrap;
 }
 
-.timeline-controls label {
+.timeline-settings-block {
+  margin-top: 12px;
+}
+
+.timeline-settings label {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--ink-soft);
 }
 
-.timeline-controls input[type="range"] {
-  width: min(420px, 80vw);
+.timeline-settings input[type="number"] {
+  width: 120px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font: inherit;
+}
+
+.timeline-settings-preview {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: var(--ink-soft);
+  font-size: 0.85rem;
 }
 
 .ex-palette {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   background: #f8fafc;
   border-radius: 12px;
   padding: 12px 14px;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  margin-top: 16px;
+  margin: 8px 0 12px;
 }
 
 .ex-palette h3 {
@@ -525,22 +529,75 @@ input[type="number"] {
   color: var(--ink-soft);
 }
 
-.palette-row {
+.skill-lane {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 10px;
+  grid-template-columns: 36px 1fr;
   align-items: center;
+  gap: 8px;
 }
 
-.palette-name {
-  font-weight: 600;
-  font-size: 0.85rem;
+.lane-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
 }
 
-.palette-chips {
+.lane-chips {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.lane-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+.chip-owner {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.timeline-editor {
+  margin-top: 10px;
+  display: grid;
+  gap: 12px;
+}
+
+.timeline-danger-zone {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.danger-button {
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  border: 1px solid #fca5a5;
+  background: #fff1f2;
+  color: #b91c1c;
+  box-shadow: none;
+  opacity: 0.78;
+}
+
+.danger-button:hover {
+  transform: none;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.timeline-editor h3 {
+  margin: 0;
+  font-size: 1rem;
 }
 
 .event-editor {
@@ -735,14 +792,6 @@ input[type="number"] {
   opacity: 0.9;
 }
 
-.timeline-cursor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(239, 68, 68, 0.7);
-}
-
 .resize-handle {
   position: absolute;
   right: 4px;
@@ -754,51 +803,11 @@ input[type="number"] {
   cursor: ew-resize;
 }
 
-.inspector {
-  grid-column: 1 / -1;
-}
-
-.inspector-controls {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
 select {
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid var(--border);
   font: inherit;
-}
-
-.time-tag {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: #e2e8f0;
-  font-weight: 600;
-}
-
-.inspector-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.card {
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 14px 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.card h3 {
-  margin-top: 0;
-}
-
-.card ul {
-  padding-left: 18px;
-  margin: 10px 0 0;
 }
 
 .muted {
@@ -854,6 +863,11 @@ select {
   transform: translateY(0);
 }
 
+.buff-bar:hover,
+.buff-bar:focus-visible {
+  z-index: 20;
+}
+
 .buff-list {
   display: grid;
   gap: 8px;
@@ -861,7 +875,7 @@ select {
 
 .buff-row {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr 0.6fr 1.4fr;
+  grid-template-columns: 1fr 1fr 0.9fr 0.7fr 2fr;
   gap: 8px;
   padding: 8px 10px;
   border-radius: 12px;
@@ -914,8 +928,9 @@ select {
     padding: 24px 18px 48px;
   }
 
-  .palette-row {
+  .skill-lane {
     grid-template-columns: 1fr;
+    gap: 4px;
   }
 
   .timeline-row {
