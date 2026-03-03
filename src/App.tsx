@@ -1255,6 +1255,51 @@ export default function App() {
             </p>
             <h2>タイムライン</h2>
           </div>
+          <div className="ex-palette">
+            <h3>スキルパレット</h3>
+            <div className="skill-lane ex">
+              <span className="lane-label">EX</span>
+              <div className="lane-chips">
+                {students.flatMap((student) =>
+                  student.ex.map((ex) => (
+                    <button
+                      key={`${student.id}:${ex.id}`}
+                      type="button"
+                      className="chip chip-ex lane-chip"
+                      draggable
+                      onDragStart={(event) =>
+                        handleDragStart(event, student.id, "ex", ex.id)
+                      }
+                    >
+                      <span className="chip-owner">{student.name}</span>
+                      {ex.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="skill-lane ns">
+              <span className="lane-label">NS</span>
+              <div className="lane-chips">
+                {students.flatMap((student) =>
+                  student.ns.map((ns) => (
+                    <button
+                      key={`${student.id}:${ns.id}`}
+                      type="button"
+                      className="chip chip-ns lane-chip"
+                      draggable
+                      onDragStart={(event) =>
+                        handleDragStart(event, student.id, "ns", ns.id)
+                      }
+                    >
+                      <span className="chip-owner">{student.name}</span>
+                      {ns.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
 
           <div className="timeline-scroll">
             <div
@@ -1363,44 +1408,6 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </div>
-          <div className="ex-palette">
-            <h3>スキルパレット</h3>
-            {students.map((student) => (
-              <div key={student.id} className="palette-row">
-                <span className="palette-name">{student.name}</span>
-                <div className="palette-chips">
-                  {student.ex.map((ex) => (
-                    <button
-                      key={ex.id}
-                      type="button"
-                      className="chip chip-ex"
-                      draggable
-                      onDragStart={(event) =>
-                        handleDragStart(event, student.id, "ex", ex.id)
-                      }
-                    >
-                      <span className="chip-label">EX</span>
-                      {ex.name}
-                    </button>
-                  ))}
-                  {student.ns.map((ns) => (
-                    <button
-                      key={ns.id}
-                      type="button"
-                      className="chip chip-ns"
-                      draggable
-                      onDragStart={(event) =>
-                        handleDragStart(event, student.id, "ns", ns.id)
-                      }
-                    >
-                      <span className="chip-label">NS</span>
-                      {ns.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
           </div>
           {selectedEvent && (
             <div className="event-editor">

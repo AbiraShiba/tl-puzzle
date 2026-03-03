@@ -511,18 +511,55 @@ input[type="number"] {
 
 .ex-palette {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   background: #f8fafc;
   border-radius: 12px;
   padding: 12px 14px;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  margin-top: 16px;
+  margin: 8px 0 12px;
 }
 
 .ex-palette h3 {
   margin: 0;
   font-size: 0.95rem;
   color: var(--ink-soft);
+}
+
+.skill-lane {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.lane-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.lane-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.lane-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+.chip-owner {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .timeline-editor {
@@ -557,24 +594,6 @@ input[type="number"] {
 .timeline-editor h3 {
   margin: 0;
   font-size: 1rem;
-}
-
-.palette-row {
-  display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 10px;
-  align-items: center;
-}
-
-.palette-name {
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.palette-chips {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .event-editor {
@@ -900,8 +919,9 @@ select {
     padding: 24px 18px 48px;
   }
 
-  .palette-row {
+  .skill-lane {
     grid-template-columns: 1fr;
+    gap: 4px;
   }
 
   .timeline-row {
