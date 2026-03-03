@@ -305,6 +305,40 @@ const buildBuffLanes = (buffs: BuffInstance[]) => {
 
   return { laneMap, laneCount: Math.max(1, laneEnds.length) };
 };
+const buildBuffLanesByTarget = (
+  buffs: BuffInstance[],
+  targetIdsInOrder: string[]
+) => {
+  const grouped = new Map<string, BuffInstance[]>();
+  buffs.forEach((buff) => {
+    const list = grouped.get(buff.studentId);
+    if (list) {
+      list.push(buff);
+    } else {
+      grouped.set(buff.studentId, [buff]);
+    }
+  });
+
+  const laneMap: Record<string, number> = {};
+  let laneOffset = 0;
+  const assignGroup = (studentId: string) => {
+    const group = grouped.get(studentId);
+    if (!group?.length) return;
+    const local = buildBuffLanes(group);
+    Object.entries(local.laneMap).forEach(([buffId, lane]) => {
+      laneMap[buffId] = lane + laneOffset;
+    });
+    laneOffset += local.laneCount;
+    grouped.delete(studentId);
+  };
+
+  targetIdsInOrder.forEach(assignGroup);
+  Array.from(grouped.keys())
+    .sort((a, b) => a.localeCompare(b))
+    .forEach(assignGroup);
+
+  return { laneMap, laneCount: Math.max(1, laneOffset) };
+};
 
 const createId = () => `evt_${Date.now().toString(36)}_${Math.random()}`;
 const createLocalId = (prefix: string) =>
@@ -498,13 +532,15 @@ export default function App() {
     );
     return applyOverwriteRules(raw);
   }, [students, events, nsEnabled, nsTargets, timelineSeconds, timeStep]);
-  const buffLanes = useMemo(() => buildBuffLanes(buffInstances), [buffInstances]);
-
   const selectedStudent = students.find((student) => student.id === selectedStudentId);
   const allTargets = useMemo(() => [...students, enemy], [students, enemy]);
   const allTargetIds = useMemo(
     () => allTargets.map((item) => item.id),
     [allTargets]
+  );
+  const buffLanes = useMemo(
+    () => buildBuffLanesByTarget(buffInstances, allTargets.map((item) => item.id)),
+    [buffInstances, allTargets]
   );
 
   const handleDragStart = (
