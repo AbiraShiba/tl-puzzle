@@ -525,7 +525,6 @@ export default function App() {
   const [selectedStudentId, setSelectedStudentId] = useState<string>(
     defaultStudents[0]?.id ?? ""
   );
-  const [inspectTime, setInspectTime] = useState<number>(10);
   const [shareMessage, setShareMessage] = useState<string>("");
   const [selectedBuffRef, setSelectedBuffRef] = useState<{
     eventId: string;
@@ -1214,28 +1213,11 @@ export default function App() {
               URL共有は状態・生徒データを含むため、データ量が多い場合はURLが長くなります。
             </p>
             <h2>タイムライン</h2>
-            <p className="hint">
-              バフはEXスキル配置とNS自動発動で追加されます。EXは生徒カードの
-              ボタンをドラッグしてタイムラインにドロップしてください。配置後は
-              ブロックをドラッグで移動、右端のハンドルで長さを調整できます。対象は
-              ブロック選択後のフォームで変更できます。
-            </p>
           <div className="timeline-controls">
-            <label>
-              観測時刻: {formatTime(inspectTime)}
-              <input
-                type="range"
-                min={0}
-                max={timelineSeconds}
-                step={timeStep}
-                value={inspectTime}
-                onChange={(event) => setInspectTime(Number(event.target.value))}
-              />
-            </label>
-              <button type="button" className="ghost" onClick={handleTimelineClear}>
-                すべて削除
-              </button>
-            </div>
+            <button type="button" className="ghost" onClick={handleTimelineClear}>
+              すべて削除
+            </button>
+          </div>
           </div>
 
           <div className="timeline-scroll">
@@ -1342,10 +1324,6 @@ export default function App() {
                       />
                     );
                   })}
-                  <div
-                    className="timeline-cursor"
-                    style={{ left: `${(inspectTime / timelineSeconds) * 100}%` }}
-                  />
                 </div>
               </div>
             </div>

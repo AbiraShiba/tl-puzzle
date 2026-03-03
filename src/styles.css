@@ -765,14 +765,6 @@ input[type="number"] {
   opacity: 0.9;
 }
 
-.timeline-cursor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: rgba(239, 68, 68, 0.7);
-}
-
 .resize-handle {
   position: absolute;
   right: 4px;
