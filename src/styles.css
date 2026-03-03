@@ -484,6 +484,10 @@ input[type="number"] {
   flex-wrap: wrap;
 }
 
+.timeline-settings-block {
+  margin-top: 12px;
+}
+
 .timeline-settings label {
   display: flex;
   flex-direction: column;

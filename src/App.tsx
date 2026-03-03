@@ -1179,80 +1179,6 @@ export default function App() {
         <div className="layout-row">
           <section className="panel timeline">
           <div className="panel-head">
-            <div className="timeline-settings">
-              <label>
-                時間解像度 (秒)
-                <input
-                  type="number"
-                  min={0.05}
-                  max={1}
-                  step={0.05}
-                  value={timeStepInput}
-                  onChange={(event) => setTimeStepInput(event.target.value)}
-                  onFocus={(event) => event.currentTarget.select()}
-                  onBlur={() => {
-                    const value = Number(timeStepInput);
-                    if (Number.isFinite(value)) {
-                      updateTimeStep(value);
-                    } else {
-                      setTimeStepInput(String(timeStep));
-                    }
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      const value = Number(timeStepInput);
-                      if (Number.isFinite(value)) {
-                        updateTimeStep(value);
-                      } else {
-                        setTimeStepInput(String(timeStep));
-                      }
-                      event.currentTarget.blur();
-                    }
-                  }}
-                />
-              </label>
-              <label>
-                戦闘時間 (秒)
-                <input
-                  type="number"
-                  min={10}
-                  max={600}
-                  step={5}
-                  value={timelineSecondsInput}
-                  onChange={(event) => setTimelineSecondsInput(event.target.value)}
-                  onFocus={(event) => event.currentTarget.select()}
-                  onBlur={() => {
-                    const value = Number(timelineSecondsInput);
-                    if (Number.isFinite(value)) {
-                      updateTimelineSeconds(value);
-                    } else {
-                      setTimelineSecondsInput(String(timelineSeconds));
-                    }
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      const value = Number(timelineSecondsInput);
-                      if (Number.isFinite(value)) {
-                        updateTimelineSeconds(value);
-                      } else {
-                        setTimelineSecondsInput(String(timelineSeconds));
-                      }
-                      event.currentTarget.blur();
-                    }
-                  }}
-                />
-              </label>
-              <div className="timeline-settings-preview">
-                <span>現在値: {timeStep.toFixed(2)}s / {timelineSeconds}s</span>
-              </div>
-              <button type="button" onClick={handleShare}>
-                共有URLを作成
-              </button>
-            </div>
-            {shareMessage && <p className="note">{shareMessage}</p>}
-            <p className="hint">
-              URL共有は状態・生徒データを含むため、データ量が多い場合はURLが長くなります。
-            </p>
             <h2>タイムライン</h2>
           </div>
           <div className="ex-palette">
@@ -1694,6 +1620,82 @@ export default function App() {
               </>
             </div>
           )}
+          <div className="timeline-settings-block">
+            <div className="timeline-settings">
+              <label>
+                時間解像度 (秒)
+                <input
+                  type="number"
+                  min={0.05}
+                  max={1}
+                  step={0.05}
+                  value={timeStepInput}
+                  onChange={(event) => setTimeStepInput(event.target.value)}
+                  onFocus={(event) => event.currentTarget.select()}
+                  onBlur={() => {
+                    const value = Number(timeStepInput);
+                    if (Number.isFinite(value)) {
+                      updateTimeStep(value);
+                    } else {
+                      setTimeStepInput(String(timeStep));
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      const value = Number(timeStepInput);
+                      if (Number.isFinite(value)) {
+                        updateTimeStep(value);
+                      } else {
+                        setTimeStepInput(String(timeStep));
+                      }
+                      event.currentTarget.blur();
+                    }
+                  }}
+                />
+              </label>
+              <label>
+                戦闘時間 (秒)
+                <input
+                  type="number"
+                  min={10}
+                  max={600}
+                  step={5}
+                  value={timelineSecondsInput}
+                  onChange={(event) => setTimelineSecondsInput(event.target.value)}
+                  onFocus={(event) => event.currentTarget.select()}
+                  onBlur={() => {
+                    const value = Number(timelineSecondsInput);
+                    if (Number.isFinite(value)) {
+                      updateTimelineSeconds(value);
+                    } else {
+                      setTimelineSecondsInput(String(timelineSeconds));
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      const value = Number(timelineSecondsInput);
+                      if (Number.isFinite(value)) {
+                        updateTimelineSeconds(value);
+                      } else {
+                        setTimelineSecondsInput(String(timelineSeconds));
+                      }
+                      event.currentTarget.blur();
+                    }
+                  }}
+                />
+              </label>
+              <div className="timeline-settings-preview">
+                <span>現在値: {timeStep.toFixed(2)}s / {timelineSeconds}s</span>
+              </div>
+              <button type="button" onClick={handleShare}>
+                共有URLを作成
+              </button>
+            </div>
+            {shareMessage && <p className="note">{shareMessage}</p>}
+            <p className="hint">
+              URL共有は状態・生徒データを含むため、データ量が多い場合はURLが長くなります。
+            </p>
+          </div>
           <div className="timeline-editor">
             <h3>スキル/生徒編集</h3>
             <div className="settings-row">
